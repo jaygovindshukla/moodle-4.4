@@ -46,34 +46,28 @@ class create_user extends external_api
         return new external_function_parameters([
             'firstname' => new external_value(PARAM_TEXT, 'First name of the user'),
             'lastname' => new external_value(PARAM_TEXT, 'Last name of the user'),
-            'email' => new external_value(PARAM_EMAIL, 'Email address of the user'),
+            'email' => new external_value(PARAM_EMAIL, 'Email address of the user (also used as username)'),
             'phone1' => new external_value(PARAM_TEXT, 'Contact number of the user', VALUE_DEFAULT, ''),
-            'username' => new external_value(PARAM_USERNAME, 'Username (auto-generated if not provided)', VALUE_DEFAULT, ''),
-            'password' => new external_value(PARAM_RAW, 'Password (generated if createpassword is true)', VALUE_DEFAULT, ''),
-            'createpassword' => new external_value(PARAM_BOOL, 'If true, generate and email password to user', VALUE_DEFAULT, true),
         ]);
     }
 
     /**
      * Create a new user in Moodle.
      *
+     * Username is automatically set to the email address.
+     * Password is auto-generated and sent via welcome email.
+     *
      * @param string $firstname First name of the user.
      * @param string $lastname Last name of the user.
-     * @param string $email Email address of the user.
+     * @param string $email Email address of the user (also used as username).
      * @param string $phone1 Contact number of the user.
-     * @param string $username Username (optional, auto-generated if empty).
-     * @param string $password Password (optional).
-     * @param bool $createpassword If true, generate and email password to user.
      * @return array Result with success status, user id, username, and message.
      */
     public static function execute(
         string $firstname,
         string $lastname,
         string $email,
-        string $phone1 = '',
-        string $username = '',
-        string $password = '',
-        bool $createpassword = true
+        string $phone1 = ''
         ): array
     {
         global $CFG, $DB;
@@ -89,9 +83,6 @@ class create_user extends external_api
             'lastname' => $lastname,
             'email' => $email,
             'phone1' => $phone1,
-            'username' => $username,
-            'password' => $password,
-            'createpassword' => $createpassword,
         ]);
 
         // Extract validated parameters.
@@ -99,9 +90,6 @@ class create_user extends external_api
         $lastname = trim($params['lastname']);
         $email = trim($params['email']);
         $phone1 = trim($params['phone1']);
-        $username = trim($params['username']);
-        $password = $params['password'];
-        $createpassword = $params['createpassword'];
 
         // Validate mandatory fields.
         if (empty($firstname)) {
@@ -131,27 +119,19 @@ class create_user extends external_api
             }
         }
 
-        // Generate username if not provided.
-        if (empty($username)) {
-            $username = self::generate_username($email);
-        }
-
-        // Ensure username is lowercase.
-        $username = \core_text::strtolower($username);
+        // Use email as username (lowercased).
+        $username = \core_text::strtolower($email);
 
         // Clean the username.
         $username = \core_user::clean_field($username, 'username');
 
-        // Check if username already exists, add numeric suffix if needed.
-        $baseusername = $username;
-        $counter = 1;
-        while ($DB->record_exists('user', ['username' => $username, 'mnethostid' => $CFG->mnet_localhost_id])) {
-            $username = $baseusername . $counter;
-            $counter++;
-            if ($counter > 100) {
-                return self::error_response('Unable to generate a unique username.');
-            }
+        // Check if username already exists.
+        if ($DB->record_exists('user', ['username' => $username, 'mnethostid' => $CFG->mnet_localhost_id])) {
+            return self::error_response('A user with this email already exists: ' . $email);
         }
+
+        // Auto-generate a secure password.
+        $plainpassword = generate_password();
 
         // Prepare user data.
         $user = new \stdClass();
@@ -163,43 +143,74 @@ class create_user extends external_api
         $user->auth = 'manual';
         $user->confirmed = 1;
         $user->mnethostid = $CFG->mnet_localhost_id;
-
-        // Handle password.
-        $updatepassword = false;
-        if ($createpassword) {
-            // Password will be generated and emailed.
-            $user->password = '';
-        }
-        else if (!empty($password)) {
-            // Use provided password.
-            $user->password = $password;
-            $updatepassword = true;
-        }
-        else {
-            // No password provided and not creating one - error.
-            return self::error_response('You must provide a password or set createpassword to true.');
-        }
+        $user->password = $plainpassword;
 
         try {
-            // Create the user using Moodle core API.
-            $userid = user_create_user($user, $updatepassword, true);
+            // Create the user using Moodle core API (with password hashing).
+            $userid = user_create_user($user, true, false);
 
-            // Send password creation email if requested.
-            if ($createpassword && $userid) {
-                setnew_password_and_mail($DB->get_record('user', ['id' => $userid]));
+            if ($userid) {
+                // Send welcome email with username and password.
+                $createduser = $DB->get_record('user', ['id' => $userid]);
+                self::send_welcome_email($createduser, $plainpassword);
             }
 
             return [
                 'success' => true,
                 'userid' => $userid,
                 'username' => $username,
-                'message' => 'User created successfully.',
+                'message' => 'User created successfully. Welcome email with login credentials has been sent.',
             ];
 
         }
         catch (\Exception $e) {
             return self::error_response('Failed to create user: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Send welcome email with username and password to the newly created user.
+     *
+     * @param \stdClass $user The user object.
+     * @param string $plainpassword The plain text password.
+     * @return bool True if email was sent successfully.
+     */
+    private static function send_welcome_email(\stdClass $user, string $plainpassword): bool
+    {
+        global $CFG, $SITE;
+
+        $supportuser = \core_user::get_support_user();
+
+        $subject = get_string('newusernewpasswordsubj', '', format_string($SITE->fullname));
+
+        $a = new \stdClass();
+        $a->firstname = $user->firstname;
+        $a->lastname = $user->lastname;
+        $a->sitename = format_string($SITE->fullname);
+        $a->username = $user->username;
+        $a->password = $plainpassword;
+        $a->link = $CFG->wwwroot . '/login/';
+
+        $messagetext = "Hello {$a->firstname} {$a->lastname},\n\n";
+        $messagetext .= "Welcome to {$a->sitename}!\n\n";
+        $messagetext .= "Your account has been created with the following login credentials:\n\n";
+        $messagetext .= "Username: {$a->username}\n";
+        $messagetext .= "Password: {$a->password}\n\n";
+        $messagetext .= "You can login at: {$a->link}\n\n";
+        $messagetext .= "For security reasons, we recommend that you change your password after your first login.\n\n";
+        $messagetext .= "Best regards,\n";
+        $messagetext .= "{$a->sitename} Team";
+
+        $messagehtml = "<p>Hello {$a->firstname} {$a->lastname},</p>";
+        $messagehtml .= "<p>Welcome to <strong>{$a->sitename}</strong>!</p>";
+        $messagehtml .= "<p>Your account has been created with the following login credentials:</p>";
+        $messagehtml .= "<p><strong>Username:</strong> {$a->username}<br>";
+        $messagehtml .= "<strong>Password:</strong> {$a->password}</p>";
+        $messagehtml .= "<p>You can login at: <a href=\"{$a->link}\">{$a->link}</a></p>";
+        $messagehtml .= "<p>For security reasons, we recommend that you change your password after your first login.</p>";
+        $messagehtml .= "<p>Best regards,<br>{$a->sitename} Team</p>";
+
+        return email_to_user($user, $supportuser, $subject, $messagetext, $messagehtml);
     }
 
     /**
@@ -217,28 +228,6 @@ class create_user extends external_api
         ]);
     }
 
-    /**
-     * Generate a username from email address.
-     *
-     * @param string $email Email address.
-     * @return string Generated username.
-     */
-    private static function generate_username(string $email): string
-    {
-        // Get the part before @ symbol.
-        $parts = explode('@', $email);
-        $username = $parts[0];
-
-        // Remove any non-alphanumeric characters except dots, underscores, and hyphens.
-        $username = preg_replace('/[^a-zA-Z0-9._-]/', '', $username);
-
-        // Ensure it's not empty.
-        if (empty($username)) {
-            $username = 'user' . time();
-        }
-
-        return $username;
-    }
 
     /**
      * Return an error response structure.
