@@ -1,0 +1,18 @@
+# Moodle config (never commit)
+config.php
+
+# Moodle data directories
+moodledata/
+moodle_data/
+
+# Cache & temp
+cache/
+temp/
+localcache/
+
+# Logs
+*.log
+
+# OS junk
+Thumbs.db
+.DS_Store
