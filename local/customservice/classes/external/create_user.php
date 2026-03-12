@@ -48,6 +48,7 @@ class create_user extends external_api
             'lastname' => new external_value(PARAM_TEXT, 'Last name of the user'),
             'email' => new external_value(PARAM_EMAIL, 'Email address of the user (also used as username)'),
             'phone1' => new external_value(PARAM_TEXT, 'Contact number of the user', VALUE_DEFAULT, ''),
+            'crm_id' => new external_value(PARAM_TEXT, 'CRM ID of the user', VALUE_DEFAULT, ''),
         ]);
     }
 
@@ -57,17 +58,20 @@ class create_user extends external_api
      * Username is automatically set to the email address.
      * Password is auto-generated and sent via welcome email.
      *
+     *
      * @param string $firstname First name of the user.
      * @param string $lastname Last name of the user.
      * @param string $email Email address of the user (also used as username).
      * @param string $phone1 Contact number of the user.
+     * @param string $crm_id CRM ID of the user.
      * @return array Result with success status, user id, username, and message.
      */
     public static function execute(
         string $firstname,
         string $lastname,
         string $email,
-        string $phone1 = ''
+        string $phone1 = '',
+        string $crm_id = ''
         ): array
     {
         global $CFG, $DB;
@@ -83,6 +87,7 @@ class create_user extends external_api
             'lastname' => $lastname,
             'email' => $email,
             'phone1' => $phone1,
+            'crm_id' => $crm_id,
         ]);
 
         // Extract validated parameters.
@@ -90,6 +95,7 @@ class create_user extends external_api
         $lastname = trim($params['lastname']);
         $email = trim($params['email']);
         $phone1 = trim($params['phone1']);
+        $crm_id = trim($params['crm_id']);
 
         // Validate mandatory fields.
         if (empty($firstname)) {
@@ -140,6 +146,7 @@ class create_user extends external_api
         $user->lastname = $lastname;
         $user->email = $email;
         $user->phone1 = $phone1;
+        $user->crm_id = $crm_id;
         $user->auth = 'manual';
         $user->confirmed = 1;
         $user->mnethostid = $CFG->mnet_localhost_id;
