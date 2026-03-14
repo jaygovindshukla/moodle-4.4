@@ -16,3 +16,4 @@ localcache/
 # OS junk
 Thumbs.db
 .DS_Store
+.idea/
