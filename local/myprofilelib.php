@@ -155,11 +155,11 @@ function core_myprofile_navigation(core_user\output\myprofile\tree $tree, $user,
         $maildisplay = obfuscate_mailto($user->email, '');
         if ($iscurrentuser) {
             if ($user->maildisplay == core_user::MAILDISPLAY_EVERYONE) {
-                $maildisplay .= ' ' /*. get_string('emaildisplayeveryone')*/;
+                $maildisplay .= ' ' . get_string('emaildisplayeveryone');
             } else if ($user->maildisplay == core_user::MAILDISPLAY_COURSE_MEMBERS_ONLY) {
-                $maildisplay .= ' ' /*. get_string('emaildisplaycoursemembersonly')*/;
+                $maildisplay .= ' ' . get_string('emaildisplaycoursemembersonly');
             } else {
-                $maildisplay .= ' ' /*. get_string('emaildisplayhide')*/;
+                $maildisplay .= ' ' . get_string('emaildisplayhide');
             }
         }
         $node = new core_user\output\myprofile\node('contact', 'email', get_string('email'),

@@ -149,6 +149,15 @@ useredit_load_preferences($user);
 // Load custom profile fields data.
 profile_load_data($user);
 
+// Local userdocuments plugin: include library and prepare draft areas for document fields.
+$isadmin = false;
+$userdocumentslib = $CFG->dirroot . '/local/userdocuments/lib.php';
+if (file_exists($userdocumentslib)) {
+    require_once($userdocumentslib);
+    if (function_exists('local_custom_userdocs_prepare_draft_areas')) {
+        local_custom_userdocs_prepare_draft_areas($user);
+    }
+}
 
 // Prepare the editor and create form.
 $editoroptions = array(
@@ -173,7 +182,8 @@ $user->imagefile = $draftitemid;
 $userform = new user_edit_form(new moodle_url($PAGE->url, array('returnto' => $returnto)), array(
     'editoroptions' => $editoroptions,
     'filemanageroptions' => $filemanageroptions,
-    'user' => $user));
+    'user' => $user,
+    'isadmin' => $isadmin));
 
 $emailchanged = false;
 
@@ -253,6 +263,11 @@ if ($userform->is_cancelled()) {
 
     // Save custom profile fields data.
     profile_save_data($usernew);
+
+    // Local userdocuments plugin: save documents and guardian data.
+    if (function_exists('local_custom_userdocs_save_data')) {
+        local_custom_userdocs_save_data($usernew);
+    }
 
     // Trigger event.
     \core\event\user_updated::create_from_userid($user->id)->trigger();

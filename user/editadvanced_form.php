@@ -54,6 +54,7 @@ class user_editadvanced_form extends moodleform {
         $filemanageroptions = $this->_customdata['filemanageroptions'];
         $user = $this->_customdata['user'];
         $userid = $user->id;
+        $isadmin = array_key_exists('isadmin', $this->_customdata) ? (bool)$this->_customdata['isadmin'] : true;
 
         // Accessibility: "Required" is bad legend text.
         $strgeneral  = get_string('general');
@@ -154,6 +155,11 @@ class user_editadvanced_form extends moodleform {
 
         // Next the customisable profile fields.
         profile_definition($mform, $userid);
+
+        // Local userdocuments plugin: add education, identity, and guardian fields.
+        if (function_exists('local_custom_userdocs_add_fields')) {
+            local_custom_userdocs_add_fields($mform, $userid, $isadmin);
+        }
 
         if ($userid == -1) {
             $btnstring = get_string('createuser');
@@ -324,6 +330,12 @@ class user_editadvanced_form extends moodleform {
             }
         }
 
+        // Local userdocuments plugin: validate custom document and guardian fields.
+        $isadmin = array_key_exists('isadmin', $this->_customdata) ? (bool)$this->_customdata['isadmin'] : true;
+        if (function_exists('local_custom_userdocs_validation')) {
+            $err += local_custom_userdocs_validation($usernew, $files, $isadmin);
+        }
+
         // Next the customisable profile fields.
         $err += profile_validation($usernew, $files);
 
@@ -334,5 +346,4 @@ class user_editadvanced_form extends moodleform {
         }
     }
 }
-
 

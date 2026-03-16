@@ -116,19 +116,6 @@ useredit_load_preferences($user);
 // Load custom profile fields data.
 profile_load_data($user);
 
-// Local userdocuments plugin: include library and prepare draft areas for document fields.
-$isadmin = true;
-$userdocumentslib = $CFG->dirroot . '/local/userdocuments/lib.php';
-if (file_exists($userdocumentslib)) {
-    require_once($userdocumentslib);
-    if (function_exists('local_custom_userdocs_is_admin_editor')) {
-        $isadmin = local_custom_userdocs_is_admin_editor($coursecontext);
-    }
-    if (function_exists('local_custom_userdocs_prepare_draft_areas')) {
-        local_custom_userdocs_prepare_draft_areas($user);
-    }
-}
-
 // User interests.
 $user->interests = core_tag_tag::get_item_tags_array('core', 'user', $id);
 
@@ -168,8 +155,7 @@ $user->imagefile = $draftitemid;
 $userform = new user_editadvanced_form(new moodle_url($PAGE->url, array('returnto' => $returnto)), array(
     'editoroptions' => $editoroptions,
     'filemanageroptions' => $filemanageroptions,
-    'user' => $user,
-    'isadmin' => $isadmin));
+    'user' => $user));
 
 
 // Deciding where to send the user back in most cases.
@@ -284,11 +270,6 @@ if ($userform->is_cancelled()) {
 
     // Save custom profile fields data.
     profile_save_data($usernew);
-
-    // Local userdocuments plugin: save documents and guardian data.
-    if (function_exists('local_custom_userdocs_save_data')) {
-        local_custom_userdocs_save_data($usernew);
-    }
 
     // Reload from db.
     $usernew = $DB->get_record('user', array('id' => $usernew->id));

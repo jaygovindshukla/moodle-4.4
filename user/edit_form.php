@@ -54,6 +54,7 @@ class user_edit_form extends moodleform {
         $filemanageroptions = $this->_customdata['filemanageroptions'];
         $user = $this->_customdata['user'];
         $userid = $user->id;
+        $isadmin = array_key_exists('isadmin', $this->_customdata) ? (bool)$this->_customdata['isadmin'] : false;
 
         if (empty($user->country)) {
             // We must unset the value here so $CFG->country can be used as default one.
@@ -104,6 +105,11 @@ class user_edit_form extends moodleform {
         // Next the customisable profile fields.
         profile_definition($mform, $userid);
 
+        // Local userdocuments plugin: add education, identity, and guardian fields.
+        if (function_exists('local_custom_userdocs_add_fields')) {
+            local_custom_userdocs_add_fields($mform, $userid, $isadmin);
+        }
+
         $this->add_action_buttons(true, get_string('updatemyprofile'));
 
         $this->set_data($user);
@@ -113,7 +119,7 @@ class user_edit_form extends moodleform {
      * Extend the form definition after the data has been parsed.
      */
     public function definition_after_data() {
-        global $CFG, $DB, $OUTPUT;
+        global $CFG, $DB, $OUTPUT, $USER;
 
         $mform = $this->_form;
         $userid = $mform->getElementValue('id');
@@ -183,6 +189,18 @@ class user_edit_form extends moodleform {
                 }
             }
 
+            // Lock username and email for users editing their own profile.
+            if ((int)$user->id === (int)$USER->id) {
+                if ($mform->elementExists('username')) {
+                    $mform->hardFreeze('username');
+                    $mform->setConstant('username', $user->username);
+                }
+                if ($mform->elementExists('email')) {
+                    $mform->hardFreeze('email');
+                    $mform->setConstant('email', $user->email);
+                }
+            }
+
             // Next the customisable profile fields.
             profile_definition_after_data($mform, $user->id);
 
@@ -235,11 +253,15 @@ class user_edit_form extends moodleform {
             }
         }
 
+        // Local userdocuments plugin: validate custom document and guardian fields.
+        $isadmin = array_key_exists('isadmin', $this->_customdata) ? (bool)$this->_customdata['isadmin'] : false;
+        if (function_exists('local_custom_userdocs_validation')) {
+            $errors += local_custom_userdocs_validation($usernew, $files, $isadmin);
+        }
+
         // Next the customisable profile fields.
         $errors += profile_validation($usernew, $files);
 
         return $errors;
     }
 }
-
-
