@@ -58,7 +58,9 @@ class renderer extends \plugin_renderer_base {
      * @return string
      */
     public function render_category(category $category) {
+
         $classes = $category->classes;
+
         if (empty($classes)) {
             $return = \html_writer::start_tag('section',
                 array('class' => 'node_category card d-inline-block w-100 mb-3'));

@@ -49,10 +49,13 @@ $string['doc_pan_help'] = 'Upload a scanned copy of your PAN card. Allowed forma
 // Guardian fields.
 $string['guardian_name'] = 'Guardian Name';
 $string['guardian_contact'] = 'Guardian Contact Number';
+$string['guardian_relationship'] = 'Relationship With Guardian';
 
 // Validation messages.
 $string['required_document'] = 'Please upload the required document(s).';
 $string['required_guardian_name'] = 'Guardian name is required.';
 $string['required_guardian_contact'] = 'Guardian contact number is required.';
+$string['required_guardian_relationship'] = 'Guardian relationship is required.';
 $string['error_contact_digits'] = 'Guardian contact number must contain only digits.';
 $string['error_contact_length'] = 'Guardian contact number must be exactly 10 digits.';
+$string['alternateemail'] = 'Alternate Email';

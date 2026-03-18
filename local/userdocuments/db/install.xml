@@ -10,6 +10,7 @@
         <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="FK to user.id"/>
         <FIELD NAME="guardian_name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="Guardian full name"/>
         <FIELD NAME="guardian_contact" TYPE="char" LENGTH="20" NOTNULL="true" SEQUENCE="false" COMMENT="Guardian phone number"/>
+        <FIELD NAME="guardian_relationship" TYPE="char" LENGTH="100" NOTNULL="false" SEQUENCE="false" COMMENT="Relationship to user"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
       </FIELDS>

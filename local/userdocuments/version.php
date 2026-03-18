@@ -24,7 +24,7 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version   = 2026031200;            // The current plugin version (Date: YYYYMMDDXX).
+$plugin->version   = 2026031201;            // The current plugin version (Date: YYYYMMDDXX).
 $plugin->requires  = 2024041600;            // Requires Moodle 4.4 or later.
 $plugin->component = 'local_userdocuments'; // Full name of the plugin.
 $plugin->maturity  = MATURITY_STABLE;

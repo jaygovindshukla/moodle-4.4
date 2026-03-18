@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -212,6 +212,14 @@ function local_custom_userdocs_add_fields(MoodleQuickForm $mform, int $userid, b
         $mform->addRule('userdoc_guardian_contact',
             get_string('required_guardian_contact', 'local_userdocuments'), 'required', null, 'client');
     }
+
+    $mform->addElement('text', 'userdoc_guardian_relationship',
+        get_string('guardian_relationship', 'local_userdocuments'), 'maxlength="100" size="30"');
+    $mform->setType('userdoc_guardian_relationship', PARAM_TEXT);
+    if (!$isadmin) {
+        $mform->addRule('userdoc_guardian_relationship',
+            get_string('required_guardian_relationship', 'local_userdocuments'), 'required', null, 'client');
+    }
 }
 
 /**
@@ -279,6 +287,12 @@ function local_custom_userdocs_validation($data, $files, bool $isadmin) {
         }
     }
 
+    // Validate guardian relationship.
+    $relationship = trim($data->userdoc_guardian_relationship ?? '');
+    if (!$isadmin && $relationship === '') {
+        $errors['userdoc_guardian_relationship'] = get_string('required_guardian_relationship', 'local_userdocuments');
+    }
+
     return $errors;
 }
 
@@ -336,6 +350,7 @@ function local_custom_userdocs_prepare_draft_areas(&$user) {
     if ($guardian) {
         $user->userdoc_guardian_name    = $guardian->guardian_name;
         $user->userdoc_guardian_contact = $guardian->guardian_contact;
+        $user->userdoc_guardian_relationship = $guardian->guardian_relationship ?? '';
     }
 }
 
@@ -386,12 +401,18 @@ function local_custom_userdocs_save_data($usernew) {
         }
     }
 
+    // Save alternate email as user preference
+    if (isset($usernew->alternateemail)) {
+        set_user_preference('alternateemail', $usernew->alternateemail, $usernew->id);
+    }
+
     // Save guardian data (insert or update).
     $guardianname    = trim($usernew->userdoc_guardian_name ?? '');
     $guardiancontact = trim($usernew->userdoc_guardian_contact ?? '');
+    $guardianrel     = trim($usernew->userdoc_guardian_relationship ?? '');
 
     $existing = $DB->get_record('local_userdocuments_guardian', ['userid' => $usernew->id]);
-    if ($guardianname === '' && $guardiancontact === '') {
+    if ($guardianname === '' && $guardiancontact === '' && $guardianrel === '') {
         if ($existing) {
             $DB->delete_records('local_userdocuments_guardian', ['id' => $existing->id]);
         }
@@ -402,6 +423,7 @@ function local_custom_userdocs_save_data($usernew) {
         // Update existing record.
         $existing->guardian_name    = $guardianname;
         $existing->guardian_contact = $guardiancontact;
+        $existing->guardian_relationship = $guardianrel;
         $existing->timemodified     = time();
         $DB->update_record('local_userdocuments_guardian', $existing);
     } else {
@@ -410,6 +432,7 @@ function local_custom_userdocs_save_data($usernew) {
         $record->userid           = $usernew->id;
         $record->guardian_name    = $guardianname;
         $record->guardian_contact = $guardiancontact;
+        $record->guardian_relationship = $guardianrel;
         $record->timecreated      = time();
         $record->timemodified     = time();
         $DB->insert_record('local_userdocuments_guardian', $record);

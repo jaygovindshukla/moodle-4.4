@@ -74,6 +74,11 @@ class user_edit_form extends moodleform {
         // Print the required moodle fields first.
         $mform->addElement('header', 'moodle', $strgeneral);
 
+        $purpose = user_edit_map_field_purpose($userid, 'username');
+        $mform->addElement('text', 'username', get_string('username'), 'size="20"' . $purpose);
+        $mform->addHelpButton('username', 'username', 'auth');
+        $mform->setType('username', PARAM_RAW);
+
         // Shared fields.
         useredit_shared_definition($mform, $editoroptions, $filemanageroptions, $user);
 
