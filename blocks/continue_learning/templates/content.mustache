@@ -1,0 +1,35 @@
+﻿<div class="block-continue-learning">
+    {{#hascourses}}
+        <div class="continue-learning-grid">
+            {{#courses}}
+                <a class="continue-learning-card" href="{{url}}">
+                    {{#showimages}}
+                        <div class="card-image">
+                            {{#imageurl}}
+                                <img src="{{imageurl}}" alt="{{name}}">
+                            {{/imageurl}}
+                            {{^imageurl}}
+                                <div class="image-placeholder" aria-hidden="true"></div>
+                            {{/imageurl}}
+                        </div>
+                    {{/showimages}}
+                    <div class="card-body">
+                        <div class="card-title">{{name}}</div>
+                        {{#showprogress}}
+                            <div class="progress-wrap" role="progressbar" aria-valuenow="{{progress}}" aria-valuemin="0" aria-valuemax="100" aria-label="{{#str}} progresslabel, block_continue_learning {{/str}}">
+                                <div class="progress-bar" style="width: {{progress}}%"></div>
+                            </div>
+                            <div class="progress-value">{{progress}}%</div>
+                        {{/showprogress}}
+                    </div>
+                </a>
+            {{/courses}}
+        </div>
+        <div class="continue-learning-footer">
+            <a class="continue-learning-link" href="{{mycoursesurl}}">{{#str}} seemycourses, block_continue_learning {{/str}}</a>
+        </div>
+    {{/hascourses}}
+    {{^hascourses}}
+        <div class="continue-learning-empty">{{#str}} nocourses, block_continue_learning {{/str}}</div>
+    {{/hascourses}}
+</div>

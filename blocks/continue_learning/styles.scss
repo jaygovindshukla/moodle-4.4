@@ -1,0 +1,115 @@
+﻿/* Continue Learning block styles */
+.block-continue-learning {
+    --cl-bg: #f4f7f7;
+    --cl-card-bg: #eef2f2;
+    --cl-border: #cfd8d8;
+    --cl-text: #0f1720;
+    --cl-muted: #64727f;
+    --cl-shadow: 0 6px 16px rgba(15, 23, 32, 0.08);
+    --cl-progress-bg: #c7d1d1;
+    --cl-progress-fill: #0b6b5d;
+}
+
+.block-continue-learning .continue-learning-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 18px;
+}
+
+@media (min-width: 768px) {
+    .block-continue-learning .continue-learning-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.block-continue-learning .continue-learning-card {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    text-decoration: none;
+    color: var(--cl-text);
+    background: var(--cl-card-bg);
+    border: 1px solid var(--cl-border);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 6px rgba(15, 23, 32, 0.06);
+    transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.block-continue-learning .continue-learning-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--cl-shadow);
+}
+
+.block-continue-learning .card-image {
+    position: relative;
+    padding: 10px 10px 0 10px;
+}
+
+.block-continue-learning .card-image img,
+.block-continue-learning .card-image .image-placeholder {
+    width: 100%;
+    height: 96px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid rgba(15, 23, 32, 0.08);
+    background: linear-gradient(135deg, #5f7a76, #3e5652);
+}
+
+.block-continue-learning .card-body {
+    padding: 12px 14px 14px 14px;
+    display: grid;
+    gap: 10px;
+}
+
+.block-continue-learning .card-title {
+    font-weight: 600;
+    font-size: 15px;
+    line-height: 1.3;
+    color: var(--cl-text);
+}
+
+.block-continue-learning .progress-wrap {
+    width: 100%;
+    height: 7px;
+    background: var(--cl-progress-bg);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.block-continue-learning .progress-bar {
+    height: 100%;
+    background: var(--cl-progress-fill);
+    border-radius: 999px;
+    transition: width 300ms ease;
+}
+
+.block-continue-learning .progress-value {
+    font-size: 12px;
+    color: var(--cl-muted);
+    font-weight: 600;
+}
+
+.block-continue-learning .continue-learning-footer {
+    margin-top: 14px;
+    text-align: right;
+}
+
+.block-continue-learning .continue-learning-link {
+    font-size: 12px;
+    font-weight: 600;
+    color: #0b6b5d;
+    text-decoration: none;
+}
+
+.block-continue-learning .continue-learning-link:hover {
+    text-decoration: underline;
+}
+
+.block-continue-learning .continue-learning-empty {
+    padding: 12px 10px;
+    background: var(--cl-bg);
+    border: 1px dashed var(--cl-border);
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--cl-muted);
+}
