@@ -19,6 +19,7 @@ namespace block_continue_learning\output;
 use renderer_base;
 use core_course_list_element;
 use core_completion\progress;
+use core_course\external\course_summary_exporter;
 use moodle_url;
 use stdClass;
 
@@ -59,17 +60,34 @@ class renderer extends renderer_base {
 
             $imageurl = null;
             if ($showimages) {
-                foreach ($courselistelement->get_course_overviewfiles() as $file) {
-                    if ($file->is_valid_image()) {
+                $cached = course_summary_exporter::get_course_image($course);
+                if (!empty($cached)) {
+                    $imageurl = $cached;
+                } else {
+                    $file = course_get_courseimage($course);
+                    if ($file) {
                         $imageurl = moodle_url::make_pluginfile_url(
                             $file->get_contextid(),
                             $file->get_component(),
                             $file->get_filearea(),
-                            $file->get_itemid(),
+                            null,
                             $file->get_filepath(),
                             $file->get_filename()
-                        );
-                        break;
+                        )->out(false);
+                    } else {
+                        foreach ($courselistelement->get_course_overviewfiles() as $overviewfile) {
+                            if ($overviewfile->is_valid_image()) {
+                                $imageurl = moodle_url::make_pluginfile_url(
+                                    $overviewfile->get_contextid(),
+                                    $overviewfile->get_component(),
+                                    $overviewfile->get_filearea(),
+                                    null,
+                                    $overviewfile->get_filepath(),
+                                    $overviewfile->get_filename()
+                                )->out(false);
+                                break;
+                            }
+                        }
                     }
                 }
             }
@@ -85,7 +103,7 @@ class renderer extends renderer_base {
             $carddata[] = [
                 'name' => format_string($course->fullname, true, ['context' => $context]),
                 'url' => $url->out(false),
-                'imageurl' => $imageurl ? $imageurl->out(false) : null,
+                'imageurl' => $imageurl,
                 'progress' => $progressvalue,
                 'showimages' => $showimages,
                 'showprogress' => $showprogress,
