@@ -28,7 +28,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Defines the five document file areas used by this plugin.
+ * Defines the document file areas used by this plugin.
  *
  * Each area maps to one filemanager field on the user edit form.
  * The key is the file area name, and the value is the lang string key.
@@ -40,6 +40,7 @@ function local_custom_userdocs_get_file_areas() {
         'doc_10th'       => 'doc_10th',
         'doc_12th'       => 'doc_12th',
         'doc_graduation' => 'doc_graduation',
+        'doc_resume'     => 'doc_resume',
         'doc_aadhaar'    => 'doc_aadhaar',
         'doc_pan'        => 'doc_pan',
     ];
@@ -128,7 +129,7 @@ function local_custom_userdocs_is_admin_editor(context $coursecontext = null): b
  * Add custom form fields to the user edit forms.
  *
  * Adds three sections:
- *   1. Education - 3 filemanager fields (10th, 12th, Graduation).
+ *   1. Education - 4 filemanager fields (10th, 12th, Graduation, Resume).
  *   2. Personal Identity Proof - 2 filemanager fields (Aadhaar, PAN).
  *   3. Guardians - 2 text fields (name, contact number).
  *
@@ -166,6 +167,14 @@ function local_custom_userdocs_add_fields(MoodleQuickForm $mform, int $userid, b
     $mform->addHelpButton('userdoc_graduation', 'doc_graduation', 'local_userdocuments');
     if (!$isadmin) {
         $mform->addRule('userdoc_graduation',
+            get_string('required_document', 'local_userdocuments'), 'required', null, 'client');
+    }
+
+    $mform->addElement('filemanager', 'userdoc_resume',
+        get_string('doc_resume', 'local_userdocuments'), null, $fmoptions);
+    $mform->addHelpButton('userdoc_resume', 'doc_resume', 'local_userdocuments');
+    if (!$isadmin) {
+        $mform->addRule('userdoc_resume',
             get_string('required_document', 'local_userdocuments'), 'required', null, 'client');
     }
 
@@ -310,7 +319,7 @@ function local_userdocuments_validation($data, $files) {
 /**
  * Prepare file draft areas and load guardian data for the user edit form.
  *
- * For each of the 5 document file areas, calls file_prepare_draft_area()
+ * For each document file area, calls file_prepare_draft_area()
  * so that existing files appear in the filemanager when editing a user.
  * Also loads guardian name and contact from the database.
  *
@@ -366,7 +375,7 @@ function local_userdocuments_prepare_draft_areas(&$user) {
 /**
  * Save uploaded documents and guardian data after form submission.
  *
- * For each of the 5 document file areas, calls file_save_draft_area_files()
+ * For each document file area, calls file_save_draft_area_files()
  * to persist files from the draft area to the permanent storage.
  * Also inserts or updates the guardian record in the database.
  *

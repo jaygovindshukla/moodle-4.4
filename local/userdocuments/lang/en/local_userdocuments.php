@@ -39,6 +39,8 @@ $string['doc_12th'] = '12th Documents';
 $string['doc_12th_help'] = 'Upload your 12th standard certificates and marksheets. Allowed formats: PDF, JPG, PNG. Max 10MB.';
 $string['doc_graduation'] = 'Graduation Documents';
 $string['doc_graduation_help'] = 'Upload your graduation certificates and marksheets. Allowed formats: PDF, JPG, PNG. Max 10MB.';
+$string['doc_resume'] = 'Resume';
+$string['doc_resume_help'] = 'Upload your resume or CV. Allowed formats: PDF, JPG, PNG. Max 10MB.';
 
 // Identity document fields.
 $string['doc_aadhaar'] = 'Aadhaar Card Document';

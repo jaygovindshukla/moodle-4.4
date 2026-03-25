@@ -313,6 +313,10 @@ function useredit_shared_definition(&$mform, $editoroptions, $filemanageroptions
         $mform->setType('email', PARAM_RAW_TRIMMED);
     }
 
+    // Alternate email (stored as user preference).
+    $mform->addElement('text', 'alternateemail', get_string('alternateemail', 'local_userdocuments'), 'maxlength="100" size="30"');
+    $mform->setType('alternateemail', PARAM_RAW_TRIMMED);
+
     $choices = array();
     $choices['0'] = get_string('emaildisplayno');
     $choices['1'] = get_string('emaildisplayyes');
@@ -342,10 +346,6 @@ function useredit_shared_definition(&$mform, $editoroptions, $filemanageroptions
     }
 
     // Contact fields
-    $mform->addElement('text', 'alternateemail', get_string('alternateemail', 'local_userdocuments'), 'maxlength="100" size="30"');
-    $mform->addRule('alternateemail', $strrequired, 'required', null, 'client');
-    $mform->setType('alternateemail', PARAM_RAW_TRIMMED);
-
     $mform->addElement('text', 'phone1', get_string('phone1'), 'maxlength="20" size="25"');
     $mform->addRule('phone1', $strrequired, 'required', null, 'client');
     $mform->setType('phone1', core_user::get_property_type('phone1'));
