@@ -391,26 +391,7 @@ function useredit_shared_definition(&$mform, $editoroptions, $filemanageroptions
     $mform->setType('description_editor', PARAM_RAW);
     $mform->addHelpButton('description_editor', 'userdescription');
 
-    if (empty($USER->newadminuser)) {
-        $mform->addElement('header', 'moodle_picture', get_string('pictureofuser'));
-        $mform->setExpanded('moodle_picture', true);
-
-        if (!empty($CFG->enablegravatar)) {
-            $mform->addElement('html', html_writer::tag('p', get_string('gravatarenabled')));
-        }
-
-        $mform->addElement('static', 'currentpicture', get_string('currentpicture'));
-
-        $mform->addElement('checkbox', 'deletepicture', get_string('deletepicture'));
-        $mform->setDefault('deletepicture', 0);
-
-        $mform->addElement('filemanager', 'imagefile', get_string('newpicture'), '', $filemanageroptions);
-        $mform->addHelpButton('imagefile', 'newpicture');
-
-        /*$mform->addElement('text', 'imagealt', get_string('imagealt'), 'maxlength="100" size="30"');
-        $mform->setType('imagealt', PARAM_TEXT);*/
-
-    }
+    // User picture section removed from core user edit forms.
 }
 
 /**

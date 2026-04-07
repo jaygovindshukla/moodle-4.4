@@ -40,13 +40,11 @@ class user_edit_form extends moodleform {
      * Define the form.
      */
     public function definition() {
-        global $CFG, $COURSE, $USER;
+        global $CFG, $COURSE;
 
         $mform = $this->_form;
         $editoroptions = null;
         $filemanageroptions = null;
-        $usernotfullysetup = user_not_fully_set_up($USER);
-
         if (!is_array($this->_customdata)) {
             throw new coding_exception('invalid custom data for user_edit_form');
         }
@@ -82,31 +80,6 @@ class user_edit_form extends moodleform {
         // Shared fields.
         useredit_shared_definition($mform, $editoroptions, $filemanageroptions, $user);
 
-        // Extra settigs.
-        if (!empty($CFG->disableuserimages) || $usernotfullysetup) {
-            $mform->removeElement('deletepicture');
-            $mform->removeElement('imagefile');
-            $mform->removeElement('imagealt');
-        }
-
-        // If the user isn't fully set up, let them know that they will be able to change
-        // their profile picture once their profile is complete.
-        if ($usernotfullysetup) {
-            $userpicturewarning = $mform->createElement('warning', 'userpicturewarning', 'notifymessage', get_string('newpictureusernotsetup'));
-            $enabledusernamefields = useredit_get_enabled_name_fields();
-            if ($mform->elementExists('moodle_additional_names')) {
-                $mform->insertElementBefore($userpicturewarning, 'moodle_additional_names');
-            } else if ($mform->elementExists('moodle_interests')) {
-                $mform->insertElementBefore($userpicturewarning, 'moodle_interests');
-            } else {
-                $mform->insertElementBefore($userpicturewarning, 'moodle_optional');
-            }
-
-            // This is expected to exist when the form is submitted.
-            $imagefile = $mform->createElement('hidden', 'imagefile');
-            $mform->insertElementBefore($imagefile, 'userpicturewarning');
-        }
-
         // Next the customisable profile fields.
         profile_definition($mform, $userid);
 
@@ -124,7 +97,7 @@ class user_edit_form extends moodleform {
      * Extend the form definition after the data has been parsed.
      */
     public function definition_after_data() {
-        global $CFG, $DB, $OUTPUT, $USER;
+        global $CFG, $DB, $USER;
 
         $mform = $this->_form;
         $userid = $mform->getElementValue('id');
@@ -139,22 +112,6 @@ class user_edit_form extends moodleform {
             // Remove description.
             if (empty($user->description) && !empty($CFG->profilesforenrolledusersonly) && !$DB->record_exists('role_assignments', array('userid' => $userid))) {
                 $mform->removeElement('description_editor');
-            }
-
-            // Print picture.
-            $context = context_user::instance($user->id, MUST_EXIST);
-            $fs = get_file_storage();
-            $hasuploadedpicture = ($fs->file_exists($context->id, 'user', 'icon', 0, '/', 'f2.png') || $fs->file_exists($context->id, 'user', 'icon', 0, '/', 'f2.jpg'));
-            if (!empty($user->picture) && $hasuploadedpicture) {
-                $imagevalue = $OUTPUT->user_picture($user, array('courseid' => SITEID, 'size' => 64));
-            } else {
-                $imagevalue = get_string('none');
-            }
-            $imageelement = $mform->getElement('currentpicture');
-            $imageelement->setValue($imagevalue);
-
-            if ($mform->elementExists('deletepicture') && !$hasuploadedpicture) {
-                $mform->removeElement('deletepicture');
             }
 
             // Disable fields that are locked by auth plugins.
