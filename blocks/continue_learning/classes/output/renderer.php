@@ -30,7 +30,7 @@ require_once($CFG->libdir . '/completionlib.php');
 
 class renderer extends renderer_base {
     public function render_block_content(): string {
-        global $USER;
+        global $DB, $USER;
 
         $limit = (int) get_config('block_continue_learning', 'limit');
         if ($limit <= 0) {
@@ -38,85 +38,154 @@ class renderer extends renderer_base {
         }
         $showprogress = (bool) get_config('block_continue_learning', 'showprogress');
         $showimages = (bool) get_config('block_continue_learning', 'showimages');
+        $selectedcategoryid = optional_param('clcategory', 0, PARAM_INT);
 
-        $courses = enrol_get_users_courses($USER->id, true, '*', 'visible DESC, sortorder ASC');
+        $categorysql = "SELECT id, name, sortorder
+                          FROM {course_categories}
+                         WHERE visible = 1
+                      ORDER BY sortorder ASC";
+        $allcategories = $DB->get_records_sql($categorysql);
+
+        $coursesql = "SELECT *
+                        FROM {course}
+                       WHERE id <> :siteid
+                         AND visible = 1
+                    ORDER BY category ASC, sortorder ASC";
+        $courses = $DB->get_records_sql($coursesql, ['siteid' => SITEID]);
         $courses = array_values($courses);
-        if ($limit > 0 && count($courses) > $limit) {
-            $courses = array_slice($courses, 0, $limit);
+
+        $categorycourses = [];
+        $categorycounts = [];
+        foreach ($courses as $course) {
+            $context = \context_course::instance($course->id);
+            $categoryid = (int) $course->category;
+            if ($categoryid <= 0) {
+                continue;
+            }
+
+            $categorycounts[$categoryid] = ($categorycounts[$categoryid] ?? 0) + 1;
+
+            if ($limit > 0 && isset($categorycourses[$categoryid]) && count($categorycourses[$categoryid]) >= $limit) {
+                continue;
+            }
+
+            $categorycourses[$categoryid][] = $this->build_course_card(
+                $course,
+                $context,
+                $showimages,
+                $showprogress,
+                $USER->id
+            );
         }
 
-        $carddata = [];
-        foreach ($courses as $course) {
-            if ($course->id == SITEID) {
-                continue;
-            }
-            $context = \context_course::instance($course->id);
-            if (!is_enrolled($context, $USER, '', true)) {
-                continue;
-            }
+        $categorydata = [];
+        $selectedfound = false;
+        foreach ($allcategories as $category) {
+            $categoryid = (int) $category->id;
+            $categorycontext = \context_coursecat::instance($categoryid);
+            $categoryname = format_string($category->name, true, ['context' => $categorycontext]);
 
-            $url = new moodle_url('/course/view.php', ['id' => $course->id]);
-            $courselistelement = new core_course_list_element($course);
+            $categoryurl = new moodle_url($this->page->url, ['clcategory' => $categoryid]);
+            $isselected = $selectedcategoryid === $categoryid;
+            if ($isselected) {
+                $selectedfound = true;
+            }
+            $categorydata[] = [
+                'id' => $categoryid,
+                'name' => $categoryname,
+                'coursecount' => $categorycounts[$categoryid] ?? 0,
+                'url' => $categoryurl->out(false),
+                'selected' => $isselected,
+            ];
+        }
 
-            $imageurl = null;
-            if ($showimages) {
-                $cached = course_summary_exporter::get_course_image($course);
-                if (!empty($cached)) {
-                    $imageurl = $cached;
+        if ((!$selectedfound || $selectedcategoryid <= 0) && !empty($categorydata)) {
+            $selectedcategoryid = (int) $categorydata[0]['id'];
+            foreach ($categorydata as $index => $category) {
+                $categorydata[$index]['selected'] = ($index === 0);
+            }
+        }
+
+        $data = new stdClass();
+        $data->hascategories = !empty($categorydata);
+        $data->categories = $categorydata;
+        $data->selectedcourses = $categorycourses[$selectedcategoryid] ?? [];
+        $data->hasselectedcourses = !empty($data->selectedcourses);
+        $data->showimages = $showimages;
+        $data->showprogress = $showprogress;
+
+        return $this->render_from_template('block_continue_learning/content', $data);
+    }
+
+    /**
+     * Build display data for one course card.
+     *
+     * @param \stdClass $course
+     * @param \context_course $context
+     * @param bool $showimages
+     * @param bool $showprogress
+     * @param int $userid
+     * @return array
+     */
+    private function build_course_card(
+        \stdClass $course,
+        \context_course $context,
+        bool $showimages,
+        bool $showprogress,
+        int $userid
+    ): array {
+        $url = new moodle_url('/course/view.php', ['id' => $course->id]);
+        $courselistelement = new core_course_list_element($course);
+
+        $imageurl = null;
+        if ($showimages) {
+            $cached = course_summary_exporter::get_course_image($course);
+            if (!empty($cached)) {
+                $imageurl = $cached;
+            } else {
+                $file = course_get_courseimage($course);
+                if ($file) {
+                    $imageurl = moodle_url::make_pluginfile_url(
+                        $file->get_contextid(),
+                        $file->get_component(),
+                        $file->get_filearea(),
+                        null,
+                        $file->get_filepath(),
+                        $file->get_filename()
+                    )->out(false);
                 } else {
-                    $file = course_get_courseimage($course);
-                    if ($file) {
-                        $imageurl = moodle_url::make_pluginfile_url(
-                            $file->get_contextid(),
-                            $file->get_component(),
-                            $file->get_filearea(),
-                            null,
-                            $file->get_filepath(),
-                            $file->get_filename()
-                        )->out(false);
-                    } else {
-                        foreach ($courselistelement->get_course_overviewfiles() as $overviewfile) {
-                            if ($overviewfile->is_valid_image()) {
-                                $imageurl = moodle_url::make_pluginfile_url(
-                                    $overviewfile->get_contextid(),
-                                    $overviewfile->get_component(),
-                                    $overviewfile->get_filearea(),
-                                    null,
-                                    $overviewfile->get_filepath(),
-                                    $overviewfile->get_filename()
-                                )->out(false);
-                                break;
-                            }
+                    foreach ($courselistelement->get_course_overviewfiles() as $overviewfile) {
+                        if ($overviewfile->is_valid_image()) {
+                            $imageurl = moodle_url::make_pluginfile_url(
+                                $overviewfile->get_contextid(),
+                                $overviewfile->get_component(),
+                                $overviewfile->get_filearea(),
+                                null,
+                                $overviewfile->get_filepath(),
+                                $overviewfile->get_filename()
+                            )->out(false);
+                            break;
                         }
                     }
                 }
             }
-
-            $progressvalue = 0;
-            if ($showprogress) {
-                $percentage = progress::get_course_progress_percentage($course, $USER->id);
-                if ($percentage !== null) {
-                    $progressvalue = (int) round($percentage);
-                }
-            }
-
-            $carddata[] = [
-                'name' => format_string($course->fullname, true, ['context' => $context]),
-                'url' => $url->out(false),
-                'imageurl' => $imageurl,
-                'progress' => $progressvalue,
-                'showimages' => $showimages,
-                'showprogress' => $showprogress,
-            ];
         }
 
-        $data = new stdClass();
-        $data->hascourses = !empty($carddata);
-        $data->courses = $carddata;
-        $data->showimages = $showimages;
-        $data->showprogress = $showprogress;
-        $data->mycoursesurl = (new moodle_url('/my/courses.php'))->out(false);
+        $progressvalue = 0;
+        if ($showprogress) {
+            $percentage = progress::get_course_progress_percentage($course, $userid);
+            if ($percentage !== null) {
+                $progressvalue = (int) round($percentage);
+            }
+        }
 
-        return $this->render_from_template('block_continue_learning/content', $data);
+        return [
+            'name' => format_string($course->fullname, true, ['context' => $context]),
+            'url' => $url->out(false),
+            'imageurl' => $imageurl,
+            'progress' => $progressvalue,
+            'showimages' => $showimages,
+            'showprogress' => $showprogress,
+        ];
     }
 }

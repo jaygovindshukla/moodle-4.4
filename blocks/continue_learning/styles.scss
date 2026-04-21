@@ -10,6 +10,13 @@
     --cl-progress-fill: #0b6b5d;
 }
 
+.block-continue-learning .continue-learning-category-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 14px;
+}
+
 .block-continue-learning .continue-learning-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -32,6 +39,21 @@
 .block-continue-learning .continue-learning-card:hover {
     transform: translateY(-2px);
     box-shadow: var(--cl-shadow);
+}
+
+.block-continue-learning .continue-learning-category-card {
+    min-height: 96px;
+}
+
+.block-continue-learning .continue-learning-category-card.is-active {
+    border-color: #0b6b5d;
+    background: #dceceb;
+}
+
+.block-continue-learning .category-meta {
+    font-size: 12px;
+    color: var(--cl-muted);
+    font-weight: 600;
 }
 
 .block-continue-learning .card-image {
@@ -107,10 +129,12 @@
     color: var(--cl-muted);
 }
 
+@media (max-width: 767px) {
+    .block-continue-learning .continue-learning-category-grid {
+        grid-template-columns: 1fr;
+    }
 
-.block_continue_learning .block-continue-learning .continue-learning-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
+    .block-continue-learning .continue-learning-grid {
+        grid-template-columns: 1fr;
+    }
 }
-
