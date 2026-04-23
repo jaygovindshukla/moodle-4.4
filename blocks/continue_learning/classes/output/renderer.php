@@ -30,46 +30,67 @@ require_once($CFG->libdir . '/completionlib.php');
 
 class renderer extends renderer_base {
     public function render_block_content(): string {
-        global $DB, $USER;
+        global $USER;
 
-        $limit = (int) get_config('block_continue_learning', 'limit');
-        if ($limit <= 0) {
-            $limit = 6;
-        }
-        $showprogress = (bool) get_config('block_continue_learning', 'showprogress');
-        $showimages = (bool) get_config('block_continue_learning', 'showimages');
-        $selectedcategoryid = optional_param('clcategory', 0, PARAM_INT);
-
-        $categorysql = "SELECT id, name, sortorder
-                          FROM {course_categories}
-                         WHERE visible = 1
-                      ORDER BY sortorder ASC";
-        $allcategories = $DB->get_records_sql($categorysql);
-
-        $coursesql = "SELECT *
-                        FROM {course}
-                       WHERE id <> :siteid
-                         AND visible = 1
-                    ORDER BY category ASC, sortorder ASC";
-        $courses = $DB->get_records_sql($coursesql, ['siteid' => SITEID]);
+        $courses = enrol_get_users_courses($USER->id, true, '*', 'visible DESC, sortorder ASC');
         $courses = array_values($courses);
-
-        $categorycourses = [];
-        $categorycounts = [];
+        $categorydata = [];
         foreach ($courses as $course) {
+            if ($course->id == SITEID) {
+                continue;
+            }
             $context = \context_course::instance($course->id);
+            if (!is_enrolled($context, $USER, '', true)) {
+                continue;
+            }
+
             $categoryid = (int) $course->category;
             if ($categoryid <= 0) {
                 continue;
             }
 
-            $categorycounts[$categoryid] = ($categorycounts[$categoryid] ?? 0) + 1;
+            if (!isset($categorydata[$categoryid])) {
+                $category = \core_course_category::get($categoryid, IGNORE_MISSING);
+                if (!$category) {
+                    continue;
+                }
 
-            if ($limit > 0 && isset($categorycourses[$categoryid]) && count($categorycourses[$categoryid]) >= $limit) {
-                continue;
+                $categoryurl = new moodle_url('/blocks/continue_learning/category.php', ['categoryid' => $categoryid]);
+                $categorydata[$categoryid] = [
+                    'id' => $categoryid,
+                    'name' => $category->get_formatted_name(),
+                    'coursecount' => 0,
+                    'url' => $categoryurl->out(false),
+                ];
             }
 
-            $categorycourses[$categoryid][] = $this->build_course_card(
+            $categorydata[$categoryid]['coursecount']++;
+        }
+
+        $data = new stdClass();
+        $data->hascategories = !empty($categorydata);
+        $data->categories = array_values($categorydata);
+
+        return $this->render_from_template('block_continue_learning/content', $data);
+    }
+
+    /**
+     * Render category page with enrolled courses.
+     *
+     * @param \core_course_category $category
+     * @param array $courses
+     * @return string
+     */
+    public function render_category_courses_page(\core_course_category $category, array $courses): string {
+        global $USER;
+
+        $showprogress = (bool) get_config('block_continue_learning', 'showprogress');
+        $showimages = (bool) get_config('block_continue_learning', 'showimages');
+
+        $cards = [];
+        foreach ($courses as $course) {
+            $context = \context_course::instance($course->id);
+            $cards[] = $this->build_course_card(
                 $course,
                 $context,
                 $showimages,
@@ -78,43 +99,12 @@ class renderer extends renderer_base {
             );
         }
 
-        $categorydata = [];
-        $selectedfound = false;
-        foreach ($allcategories as $category) {
-            $categoryid = (int) $category->id;
-            $categorycontext = \context_coursecat::instance($categoryid);
-            $categoryname = format_string($category->name, true, ['context' => $categorycontext]);
-
-            $categoryurl = new moodle_url($this->page->url, ['clcategory' => $categoryid]);
-            $isselected = $selectedcategoryid === $categoryid;
-            if ($isselected) {
-                $selectedfound = true;
-            }
-            $categorydata[] = [
-                'id' => $categoryid,
-                'name' => $categoryname,
-                'coursecount' => $categorycounts[$categoryid] ?? 0,
-                'url' => $categoryurl->out(false),
-                'selected' => $isselected,
-            ];
-        }
-
-        if ((!$selectedfound || $selectedcategoryid <= 0) && !empty($categorydata)) {
-            $selectedcategoryid = (int) $categorydata[0]['id'];
-            foreach ($categorydata as $index => $category) {
-                $categorydata[$index]['selected'] = ($index === 0);
-            }
-        }
-
         $data = new stdClass();
-        $data->hascategories = !empty($categorydata);
-        $data->categories = $categorydata;
-        $data->selectedcourses = $categorycourses[$selectedcategoryid] ?? [];
-        $data->hasselectedcourses = !empty($data->selectedcourses);
-        $data->showimages = $showimages;
-        $data->showprogress = $showprogress;
+        $data->categoryname = $category->get_formatted_name();
+        $data->hascourses = !empty($cards);
+        $data->courses = $cards;
 
-        return $this->render_from_template('block_continue_learning/content', $data);
+        return $this->render_from_template('block_continue_learning/category_page', $data);
     }
 
     /**

@@ -45,15 +45,17 @@
     min-height: 96px;
 }
 
-.block-continue-learning .continue-learning-category-card.is-active {
-    border-color: #0b6b5d;
-    background: #dceceb;
-}
-
 .block-continue-learning .category-meta {
     font-size: 12px;
     color: var(--cl-muted);
     font-weight: 600;
+}
+
+.block-continue-learning .continue-learning-heading {
+    margin: 0 0 12px;
+    color: var(--cl-text);
+    font-size: 18px;
+    font-weight: 700;
 }
 
 .block-continue-learning .card-image {

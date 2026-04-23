@@ -25,6 +25,7 @@ $string['showimages'] = 'Show images';
 $string['showimages_desc'] = 'Show course images.';
 $string['nocourses'] = 'No courses to continue.';
 $string['nocategories'] = 'No course categories available.';
+$string['nocategoriesenrolled'] = 'No enrolled course categories available.';
 $string['nocoursesincategory'] = 'No courses in this category.';
 $string['courselabel'] = 'course(s)';
 $string['progresslabel'] = 'Progress';
