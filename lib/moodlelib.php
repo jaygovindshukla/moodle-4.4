@@ -5653,6 +5653,65 @@ function email_to_user($user, $from, $subject, $messagetext, $messagehtml = '', 
                 $callback,
                 $messagehtml);
     }
+
+    $usebrevoforcore = (bool)get_config('local_brevo_mail', 'useforcore');
+    if ($usebrevoforcore) {
+        $fallbacktonative = (bool)get_config('local_brevo_mail', 'fallbacktonative');
+        $debugbrevo = (bool)get_config('local_brevo_mail', 'debuglog');
+
+        $brevoerror = '';
+
+        if (!empty($attachment) || !empty($attachname)) {
+            $brevoerror = get_string('brevoattachmentsunsupported', 'local_brevo_mail');
+        } else {
+            require_once($CFG->dirroot . '/local/brevo_mail/lib.php');
+            $brevoresult = local_brevo_mail_send_moodle_email(
+                $user,
+                $from,
+                $subject,
+                $messagetext,
+                $messagehtml,
+                $usetrueaddress,
+                $replyto,
+                $replytoname
+            );
+
+            if (!empty($brevoresult['success'])) {
+                set_send_count($user);
+                if ($debugbrevo) {
+                    $messageid = $brevoresult['messageId'] ?? '';
+                    debugging('email_to_user: Sent via Brevo API. messageId=' . s($messageid), DEBUG_DEVELOPER);
+                }
+                return true;
+            }
+
+            $brevoerror = (string)($brevoresult['error'] ?? get_string('unknownerror', 'local_brevo_mail'));
+        }
+
+        if ($debugbrevo) {
+            debugging('email_to_user: Brevo API send failed: ' . s($brevoerror), DEBUG_DEVELOPER);
+        }
+
+        if (!$fallbacktonative) {
+            $fromid = (is_object($from) && !empty($from->id)) ? $from->id : 0;
+            $event = \core\event\email_failed::create(array(
+                'context' => context_system::instance(),
+                'userid' => $fromid,
+                'relateduserid' => $user->id,
+                'other' => array(
+                    'subject' => $subject,
+                    'message' => $messagetext,
+                    'errorinfo' => 'Brevo API: ' . $brevoerror
+                )
+            ));
+            $event->trigger();
+            if (CLI_SCRIPT) {
+                mtrace('Error: lib/moodlelib.php email_to_user() Brevo API: ' . $brevoerror);
+            }
+            return false;
+        }
+    }
+
     $mail = get_mailer();
 
     if (!empty($mail->SMTPDebug)) {
